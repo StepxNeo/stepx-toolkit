@@ -1,0 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { Store } from '../src/store.js';
+import { startServer } from '../src/server.js';
+import { request } from 'node:http';
+
+test('local server protects writes and credential exports, serves UI and full catalog', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'stepx-server-')); const store = new Store(dir);
+  const app = await startServer(store, { port: 0 });
+  t.after(async () => { await app.close(); await rm(dir, { recursive: true, force: true }); });
+  const home = await fetch(app.url); assert.equal(home.status, 200); assert.match(home.headers.get('content-security-policy'), /frame-ancestors 'none'/);
+  assert.match(await home.text(), /StepX/);
+  const bootstrap = await (await fetch(app.url + '/api/bootstrap')).json(); assert.equal(bootstrap.endpoints.length, 44); assert.equal(bootstrap.session.hasCookie, false);
+  const post = (path, data, headers = {}) => fetch(app.url + path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': bootstrap.csrf, ...headers }, body: JSON.stringify(data) });
+  assert.equal((await post('/api/session', {cookie:'secret'}, {'X-CSRF-Token':''})).status, 403);
+  assert.equal((await post('/api/session', {cookie:'secret'}, {Origin:'https://attacker.example'})).status, 403);
+  const badHostStatus = await new Promise((resolve, reject) => { const req = request(app.url + '/api/bootstrap', { headers: { Host: 'evil.example' } }, res => { res.resume(); resolve(res.statusCode); }); req.on('error', reject); req.end(); });
+  assert.equal(badHostStatus, 403);
+  assert.equal((await post('/api/session', {cookie:'DSESSIONID=secret'})).status, 200);
+  const refreshed = await (await fetch(app.url + '/api/bootstrap')).json(); assert.equal(refreshed.session.hasCookie, true); assert.equal(JSON.stringify(refreshed).includes('DSESSIONID=secret'), false);
+  assert.equal((await fetch(app.url + '/api/session/export')).status, 404);
+  const exported = await (await post('/api/session/export', {})).json(); assert.equal(exported.cookie, 'DSESSIONID=secret');
+  assert.equal((await post('/api/call', {name:'task.sign'})).status, 400);
+  assert.equal((await post('/api/schedule', {enabled:false,time:'09:00',timezone:'Asia/Shanghai'})).status, 200);
+  assert.equal((await post('/api/schedule', {enabled:true,time:'25:00',timezone:'Asia/Shanghai'})).status, 400);
+  assert.equal((await post('/api/session', {clear:true})).status, 200);
+});

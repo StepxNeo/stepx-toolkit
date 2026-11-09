@@ -1,0 +1,17 @@
+[Unit]
+Description=Local StepX daily scheduler
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/ABSOLUTE/PATH/stepx-toolkit
+ExecStart=/ABSOLUTE/PATH/node bin/stepx.js schedule run
+Environment=STEPX_HOME=%h/.stepx-toolkit
+Restart=on-failure
+RestartSec=30
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target

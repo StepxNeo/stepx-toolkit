@@ -1,0 +1,26 @@
+{
+  "name": "stepx-toolkit",
+  "version": "0.1.0",
+  "description": "Unofficial local-first StepX SDK, CLI and task dashboard",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "exports": { ".": { "types": "./src/sdk.d.ts", "import": "./src/sdk.js" } },
+  "bin": { "stepx": "./bin/stepx.js" },
+  "scripts": {
+    "start": "node bin/stepx.js serve",
+    "cli": "node bin/stepx.js",
+    "test": "node --test",
+    "typecheck": "tsc -p jsconfig.json",
+    "build": "node scripts/check.mjs",
+    "docs:api": "node scripts/gen-api-table.mjs",
+    "docs:check": "node scripts/gen-api-table.mjs --check",
+    "shot": "node scripts/screenshot.mjs",
+    "smoke": "node scripts/smoke-ui.mjs",
+    "browser:install": "playwright install chromium"
+  },
+  "dependencies": { "playwright": "^1.56.0", "tough-cookie": "^6.0.0" },
+  "devDependencies": { "typescript": "^5.9.3", "@types/node": "^22.19.0" },
+  "files": ["src/", "bin/", "web/", "scripts/", "docs/", "examples/", "README.md", "LICENSE"]
+}

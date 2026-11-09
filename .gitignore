@@ -1,0 +1,14 @@
+node_modules/
+dist/
+artifacts/
+.env
+.env.*
+!.env.example
+.stepx*/
+*auth*.json
+*cookie*.json
+*secret*.json
+*.lock.tmp
+.DS_Store
+docs/reference/upstream-api.md
+docs/reference/upstream-sdk.js
